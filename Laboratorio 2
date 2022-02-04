@@ -1,0 +1,127 @@
+ 
+    ; Archivo:	    Laboratorio2
+    ; Dispositivo:  PIC16F887
+    ; Autor:	    Pablo Caal
+    ; Compilador:   pic-as (v2.30), MPLABX V5.40
+    ;
+    ; Programa:	Contador de 4-bits empleando Push-botons
+    ; Hardware:	Push-botons en el puerto B
+    ;
+    ; Creado: 02 feb, 2022
+    ; Última modificación: 02 feb, 2022
+    
+    PROCESSOR 16F887
+    #include <xc.inc>
+    
+    ; CONFIG1
+	CONFIG  FOSC = INTRC_NOCLKOUT ; Oscillator Selection bits (INTOSCIO oscillator: I/O function on RA6/OSC2/CLKOUT pin, I/O function on RA7/OSC1/CLKIN)
+	CONFIG  WDTE = OFF            ; Watchdog Timer Enable bit (WDT disabled and can be enabled by SWDTEN bit of the WDTCON register)
+	CONFIG  PWRTE = ON            ; Power-up Timer Enable bit (PWRT enabled)
+	CONFIG  MCLRE = OFF           ; RE3/MCLR pin function select bit (RE3/MCLR pin function is digital input, MCLR internally tied to VDD)
+	CONFIG  CP = OFF              ; Code Protection bit (Program memory code protection is disabled)
+	CONFIG  CPD = OFF             ; Data Code Protection bit (Data memory code protection is disabled)
+	
+	CONFIG  BOREN = OFF           ; Brown Out Reset Selection bits (BOR disabled)
+	CONFIG  IESO = OFF            ; Internal External Switchover bit (Internal/External Switchover mode is disabled)
+	CONFIG  FCMEN = OFF           ; Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is disabled)
+	CONFIG  LVP = ON              ; Low Voltage Programming Enable bit (RB3/PGM pin has PGM function, low voltage programming enabled)
+
+    ; CONFIG2
+	CONFIG  BOR4V = BOR40V        ; Brown-out Reset Selection bit (Brown-out Reset set to 4.0V)
+	CONFIG  WRT = OFF             ; Flash Program Memory Self Write Enable bits (Write protection off)
+	
+    ; Instrucciones del RESET
+	PSECT resVec, class=CODE, abs, delta=2	    ; (Canitdad de bytes)
+
+    ;----------------------------- VECTOR RESET --------------------------------
+    ORG 00h	; Definimos la posición 000h para el reset
+    resetVec:
+	PAGESEL main
+	goto main
+	
+    ; Configuración del microcontrolador
+	PSECT code, delta=2, abs
+	ORG 100h	    ; Posición para el código
+	
+	
+    ;--------------------------- CONFIGURACIÓN ---------------------------------
+    main:
+	BANKSEL OSCCON	    ; Registro OSCCON está en 110 (4 MHZ) predeterminado
+	BCF	OSCCON, 5   ; Desactivar el bit 5 del OSCCON para que la frecuencia sea de 1 MHz (100)
+    
+	BANKSEL ANSEL
+	CLRF	ANSEL	    ; Configurar los pines del puerto A como digitales (0 lógico)
+	CLRF	ANSELH	    ; Configurar los pines del puerto B como digitales (0 lógico)
+	
+	BANKSEL TRISA
+	BSF	TRISA, 0    ; Configurar los pines del puerto A como entradas (1 lógico)
+	BSF	TRISA, 1
+	BSF	TRISA, 2
+	BSF	TRISA, 3
+	BSF	TRISA, 4
+	BCF	TRISB, 0    ; Configurar los pines del puerto B como salidas
+	BCF	TRISB, 1
+	BCF	TRISB, 2
+	BCF	TRISB, 3
+	BCF	TRISC, 0    ; Configurar los pines del puerto C como salidas
+	BCF	TRISC, 1
+	BCF	TRISC, 2
+	BCF	TRISC, 3
+	BCF	TRISD, 0    ; Configurar los pines del puerto D como salidas
+	BCF	TRISD, 1
+	BCF	TRISD, 2
+	BCF	TRISD, 3
+	BCF	TRISD, 4    ; Bandera del Carry
+	
+	BANKSEL PORTB
+	CLRF	PORTB	    ; Apagamos todos los pines del Puerto B
+	CLRF	PORTC	    ; Apagamos todos los pines del Puerto C
+	CLRF	PORTD	    ; Apagamos todos los pines del Puerto D
+	
+    Checkbotons: 
+	BTFSC	PORTA, 0	; Comprobar si el botón 1 está presionado
+	CALL	antirrebote1
+	BTFSC	PORTA, 1	; Comprobar si el botón 2 está presionado
+	CALL	antirrebote2
+	BTFSC	PORTA, 2	; Comprobar si el botón 3 está presionado
+	CALL	antirrebote3
+	BTFSC	PORTA, 3	; Comprobar si el botón 4 está presionado
+	CALL	antirrebote4
+	BTFSC	PORTA, 4	; Comprobar si el botón 5 está presionado
+	CALL	antirrebote5
+	GOTO	Checkbotons
+    
+    ;----------------------------- SUBRUTINAS ----------------------------------
+    antirrebote1:
+	BTFSC	PORTA, 0	; Comprobar si el botón ya no está presionado
+	GOTO	$-1
+	INCF	PORTB		; Incremento del contador 1
+	return
+	
+    antirrebote2:
+	BTFSC	PORTA, 1	; Comprobar si el botón ya no está presionado
+	GOTO	$-1
+	DECF	PORTB		; Decremento del contador 1
+	return
+	
+    antirrebote3:
+	BTFSC	PORTA, 2	; Comprobar si el botón ya no está presionado
+	GOTO	$-1
+	INCF	PORTC		; Incremento del contador 2
+	return
+	
+    antirrebote4:
+	BTFSC	PORTA, 3	; Comprobar si el botón ya no está presionado
+	GOTO	$-1
+	DECF	PORTC		; Decremento del contador 2
+	return
+
+    antirrebote5:
+	BTFSC	PORTA, 4	; Comprobar si el botón ya no está presionado
+	GOTO	$-1
+	MOVF	PORTB, 0	; Almacenar el valor del Puerto B en el registro W
+	ADDWF	PORTC, 0	; Sumar el valor del Puerto C con el valor del registro W
+	MOVWF	PORTD		; Mover el valor del registro W al Puerto D
+	return
+
+    END
